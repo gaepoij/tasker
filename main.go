@@ -82,8 +82,6 @@ func printTasks() {
 
 	if len(tasks) > 0 {
 		fmt.Println("------------Current tasks-------------")
-		// range loop
-
 		for i, task := range tasks {
 			fmt.Printf("%d. %s", i+1, task)
 		}
