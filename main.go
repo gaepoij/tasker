@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -12,6 +13,11 @@ import (
 
 var tasks []string
 var doneTasks []string
+
+type TaskData struct {
+	CurrentTasks []string `json:"currentTasks"`
+	DoneTasks    []string `json:"doneTasks"`
+}
 
 func readUserInput() string {
 	reader := bufio.NewReader(os.Stdin)
@@ -25,7 +31,6 @@ func addTask() {
 	tasks = append(tasks, task)
 
 	fmt.Println("Task added successfully!")
-	optionSelect()
 
 }
 
@@ -49,7 +54,6 @@ func setDone() {
 	tasks = append(tasks[:taskToSetDone], tasks[taskToSetDone+1:]...)
 
 	fmt.Println("Task set done successfully!")
-	optionSelect()
 
 }
 
@@ -70,26 +74,47 @@ func deleteTask() {
 	tasks = append(tasks[:taskToDelete], tasks[taskToDelete+1:]...)
 
 	fmt.Println("Task deleted successfully!")
-	optionSelect()
 
 }
 
 func printTasks() {
+	readFromFile()
+
 	if len(tasks) > 0 {
 		fmt.Println("------------Current tasks-------------")
-		for i := 0; i < len(tasks); i++ {
-			fmt.Printf("%d. %s", i+1, tasks[i])
-		}
-		fmt.Println("--------------------------------------")
-	}
+		// range loop
 
+		for i, task := range tasks {
+			fmt.Printf("%d. %s", i+1, task)
+		}
+
+	}
 	if len(doneTasks) > 0 {
 		fmt.Println("------------Done tasks----------------")
-		for i := 0; i < len(doneTasks); i++ {
-			fmt.Printf("%d. %s", i+1, doneTasks[i])
+		for i, task := range doneTasks {
+			fmt.Printf("%d. %s", i+1, task)
 		}
-		fmt.Println("--------------------------------------")
 	}
+}
+
+func writeToFile(tasks []string, doneTasks []string) {
+	TaskData := TaskData{
+		CurrentTasks: tasks,
+		DoneTasks:    doneTasks,
+	}
+
+	jsonString, _ := json.Marshal(TaskData)
+	os.WriteFile("tasks.json", jsonString, 0644)
+}
+
+func readFromFile() {
+	file, _ := os.ReadFile("tasks.json")
+
+	var taskData TaskData
+	json.Unmarshal(file, &taskData)
+
+	tasks = taskData.CurrentTasks
+	doneTasks = taskData.DoneTasks
 
 }
 
@@ -108,13 +133,15 @@ func optionSelect() {
 	fmt.Println("[1] Add task 📝 ")
 	fmt.Println("[2] Set task status done 🖍")
 	fmt.Println("[3] Delete task ❌")
+	fmt.Println("[4] Clear current tasks 🧹")
+	fmt.Println("[5] Clear done tasks 🧹")
 	fmt.Println("[0] Exit 🚪")
 
 	value := readUserInput()
 
 	input, err := strconv.Atoi(strings.TrimSpace(value))
 
-	if err != nil || input < 0 || input > 4 {
+	if err != nil || input < 0 || input > 6 {
 		fmt.Println("Invalid option, please try again.")
 		optionSelect()
 	}
@@ -133,12 +160,32 @@ func optionSelect() {
 			fmt.Println("No tasks to delete, please add a task first.")
 			addTask()
 		}
+	case 4:
+		// confirmation
+		fmt.Println("Are you sure you want to clear all current tasks? (y/n)")
+		if strings.TrimSpace(readUserInput()) != "y" {
+			break
+		} else {
+			fmt.Println("Clearing all current tasks...")
+			tasks = []string{}
+		}
+
+	case 5:
+		fmt.Println("Are you sure you want to clear all done tasks? (y/n)")
+		if strings.TrimSpace(readUserInput()) != "y" {
+			break
+		} else {
+			fmt.Println("Clearing all done tasks...")
+			doneTasks = []string{}
+		}
 	case 0:
 		return
 	default:
 		fmt.Println("Invalid option, please try again.")
-		optionSelect()
 	}
+
+	writeToFile(tasks, doneTasks)
+	optionSelect()
 }
 
 func run() int {
